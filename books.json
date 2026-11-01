@@ -7,6 +7,15 @@
       "views": [
         "read"
       ]
+    },
+    {
+      "folder": "essentialism",
+      "id": "essentialism",
+      "title": "Essentialism: The Disciplined Pursuit of Less",
+      "views": [
+        "quiz",
+        "read"
+      ]
     }
   ]
 }
