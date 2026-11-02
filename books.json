@@ -10,6 +10,15 @@
       ]
     },
     {
+      "folder": "deep-work",
+      "id": "deep-work",
+      "title": "Deep Work",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
       "folder": "essentialism",
       "id": "essentialism",
       "title": "Essentialism: The Disciplined Pursuit of Less",
