@@ -46,6 +46,15 @@
       ]
     },
     {
+      "folder": "the-7-habits-of-highly-effective-people",
+      "id": "seven-habits",
+      "title": "The 7 Habits of Highly Effective People",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
       "folder": "the-checklist-manifesto",
       "id": "the-checklist-manifesto",
       "title": "The Checklist Manifesto",
