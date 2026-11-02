@@ -1,4 +1,21 @@
 {
   "title": "Habit",
-  "templateTag": "3.2.0"
+  "templateTag": "3.2.4",
+  "bookDetails": {
+    "essentialism": {
+      "authors": [
+        "Greg McKeown"
+      ]
+    },
+    "getting-things-done": {
+      "authors": [
+        "David Allen"
+      ]
+    },
+    "the-power-of-habit": {
+      "authors": [
+        "Charles Duhigg"
+      ]
+    }
+  }
 }
