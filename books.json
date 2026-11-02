@@ -28,6 +28,15 @@
       ]
     },
     {
+      "folder": "the-checklist-manifesto",
+      "id": "the-checklist-manifesto",
+      "title": "The Checklist Manifesto",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
       "folder": "the-effective-executive",
       "id": "the-effective-executive",
       "title": "The Effective Executive",
