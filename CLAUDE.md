@@ -11,6 +11,8 @@ file, image or key anywhere, never edit `books.json` by hand (the template's
 exact like `3.1.0` (no `v`, never a branch); keep `subject.json`'s
 `templateTag` in step. See README.md.
 
-The hub `index.html` is hand-written (the template's tools never touch it). It
-needs the sign-in first, so keep every book detail behind `SubjectUnlock.ready()`,
-and keep its `TEMPLATE_TAG` an exact tag.
+The hub `index.html` is only a shell: it loads the UI (`js/hub.js`, `css/hub.css`,
+icons) from https://github.com/eckko/subject-site-template on jsDelivr by one
+exact tag (the same tag in all three URLs, no `v`, never a branch). Never put
+hub UI code, styles or icons in this repo; change them in that repo and move
+the tag here.
