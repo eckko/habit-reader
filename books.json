@@ -28,6 +28,15 @@
       ]
     },
     {
+      "folder": "flow",
+      "id": "flow-htrab",
+      "title": "Flow: The Psychology of Optimal Experience",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
       "folder": "getting-things-done",
       "id": "getting-things-done",
       "title": "Getting Things Done",
