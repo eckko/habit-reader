@@ -28,6 +28,15 @@
       ]
     },
     {
+      "folder": "good-habits-bad-habits",
+      "id": "good-habits-bad-habits",
+      "title": "Good Habits, Bad Habits",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
       "folder": "mindset",
       "id": "mindset",
       "title": "Mindset: The New Psychology of Success",
