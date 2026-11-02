@@ -740,6 +740,8 @@
       /** The gear: the template's reading panel, plus Sign out. */
       function setUpGear() {
         window.RecallQuizAssetBase = CDN;
+        /* Start light, in the Classic theme (a reader's own choice wins). */
+        window.RecallQuizBookDefaults = { theme: { id: "classic", mode: "light" } };
         return SHARED_SCRIPTS.reduce(function chain(done, file) {
           return done.then(function next() { return addScript(CDN + file); });
         }, Promise.resolve()).then(function ready() {

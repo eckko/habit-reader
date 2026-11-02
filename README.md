@@ -15,7 +15,8 @@ Sign out) until the reader has signed in (or pasted the key). After that it show
 book's cover (decrypted from `<book>/media/<id>_front_cover.enc`), with search,
 filters, sort (A-Z, recent, progress, size), a cards / list / compact switch
 and the template's gear (reading settings, theme, **Sign out**) at the bottom
-right. Progress comes from this browser's saved quiz progress. The template is
+right. Progress comes from this browser's saved quiz progress. The hub starts in the Classic theme, light, at 16px (set in `setUpGear()` with
+`RecallQuizBookDefaults`; a reader's own gear choices win). The template is
 loaded by the exact tag `TEMPLATE_TAG` at the top of the script in `index.html`;
 change it there when the tag moves (`set_template_tag.py` only rewrites book
 pages).
