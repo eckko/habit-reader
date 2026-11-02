@@ -1,6 +1,7 @@
 {
   "title": "Habit",
   "templateTag": "3.2.4",
+  "uiVersion": "1",
   "bookDetails": {
     "essentialism": {
       "authors": [
