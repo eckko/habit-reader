@@ -9,8 +9,9 @@ from [`eckko/recall-quiz-site-template`](https://github.com/eckko/recall-quiz-si
 (3.0.0 and later). Each book card on the hub has two buttons, **Read book**
 and **Test only**, greyed out when the book has no such view.
 
-The hub is **sign-in only**: `index.html` shows nothing but the lock screen
-until the reader has signed in (or pasted the key). After that it shows each
+The hub is **sign-in only**: `index.html` shows nothing but a teal sign-in
+screen (the template's lock box, restyled; the gear works there too, without
+Sign out) until the reader has signed in (or pasted the key). After that it shows each
 book's cover (decrypted from `<book>/media/<id>_front_cover.enc`), with search,
 filters, sort (A-Z, recent, progress, size), a cards / list / compact switch
 and the template's gear (reading settings, theme, **Sign out**) at the bottom

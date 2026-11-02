@@ -153,10 +153,47 @@
     .empty { padding: 3rem 1rem; text-align: center; color: var(--color-text-muted, #5b6578); }
     .empty button { margin-top: .5rem; min-height: 44px; padding: 0 1.25rem; color: var(--color-text, #121826);
       background: var(--color-card, #fbfcfd); border: 2px solid var(--color-accent, #2743d6); border-radius: var(--radius-small, .75rem); font-weight: 600; }
+
+    /* Sign-in screen: shown until the subject key is known. The template's
+       lock box (#unlock) is moved into #lockslot and restyled here. */
+    #gate { position: fixed; inset: 0; z-index: 5; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column;
+      background: #164a47; color: #fff; }
+    #gate[hidden] { display: none; }
+    #gate .gate-art { flex: 1 0 auto; min-height: 14rem; display: flex; align-items: center; justify-content: center; position: relative; }
+    #gate .gate-art::before, #gate .gate-art::after { content: ""; position: absolute; border-radius: 50%; }
+    #gate .gate-art::before { width: 22rem; height: 22rem; background: #1d5c58; left: -5rem; top: 1rem; }
+    #gate .gate-art::after { width: 14rem; height: 14rem; background: #226a65; right: -3rem; top: 8rem; }
+    #gate .gate-art svg { position: relative; z-index: 1; width: 8rem; height: 8rem; }
+    #gate .gate-body { position: relative; z-index: 1; width: 100%; max-width: 28rem; margin: 0 auto; box-sizing: border-box; padding: 0 1.5rem 6rem; display: flex; flex-direction: column; gap: .9rem; }
+    #gate h1 { margin: 0; color: #fff; font: 600 2.75rem / 1.05 var(--font-heading, Georgia, serif); }
+    #gate .gate-line { margin: 0; font-size: 1rem; line-height: 1.45; color: #d4e6e3; }
+    #gate #unlock { max-width: none; margin: 0; padding: 0; font: inherit; color: #fff; }
+    #gate #unlock h1 { display: none; }
+    #gate #unlock .note { margin: 0 0 .75rem; color: #d4e6e3; }
+    #gate #unlock .row { margin: 0; flex-direction: column; align-items: stretch; }
+    #gate #unlock button { min-height: 44px; border-radius: .875rem; border: 2px solid #fff; background: transparent; color: #fff; font-weight: 600; }
+    #gate #unlock .go { min-height: 54px; border: 0; background: #fff; color: #0f2f2d; font-size: 1rem; }
+    #gate #unlock .go:disabled { opacity: .7; }
+    #gate #unlock summary { min-height: 44px; display: flex; align-items: center; color: #fff; font-weight: 500; font-size: .9rem; text-decoration: underline; text-underline-offset: 3px; }
+    #gate #unlock summary::-webkit-details-marker { display: none; }
+    #gate #unlock details .row { flex-direction: row; }
+    #gate #unlock input { min-height: 44px; box-sizing: border-box; border: 1px solid #fff; background: #fff; color: #141a2b; }
+    #gate button:focus-visible, #gate summary:focus-visible, #gate input:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   </style>
 </head>
 <body>
-  <main>
+  <section id="gate" aria-label="Sign in">
+    <div class="gate-art">
+      <svg role="img" aria-label="Habit" viewBox="0 0 180 180"><defs><linearGradient id="gateG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a8a82"/><stop offset="1" stop-color="#2f4a8f"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#gateG)"/><g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".9"><path d="M31.7 68.8A62 62 0 0 1 148.3 68.8"/><path d="M148.3 111.2A62 62 0 0 1 31.7 111.2"/></g><path d="M90 74C80 68 66 67 54 71V108C66 104 80 105 90 111z" fill="#fff"/><path d="M90 74C100 68 114 67 126 71V108C114 104 100 105 90 111z" fill="#e3f0ee"/></svg>
+    </div>
+    <div class="gate-body">
+      <h1 id="gateTitle">Books</h1>
+      <p class="gate-line">Sign in to open your books. Your account holds the key that unlocks them.</p>
+      <div id="lockslot"><p class="gate-line" id="gateWait" role="status">Checking sign-in…</p></div>
+    </div>
+  </section>
+
+  <main id="app" hidden>
     <h1 id="heading">Books</h1>
     <p class="count" id="count" aria-live="polite">Checking sign-in…</p>
 
@@ -203,6 +240,10 @@
       var SORTS = [["az", "A–Z"], ["recent", "Recent"],
         ["progress", "Progress"], ["size", "Size"]];
 
+      var gate = document.getElementById("gate");
+      var gateTitle = document.getElementById("gateTitle");
+      var lockSlot = document.getElementById("lockslot");
+      var app = document.getElementById("app");
       var heading = document.getElementById("heading");
       var count = document.getElementById("count");
       var status = document.getElementById("status");
@@ -712,7 +753,16 @@
             addSections: null,
             onReset: function noop() {},
           });
+          showSignOut(false);
         });
+      }
+
+      /** @param {boolean} on  show or hide the gear's Sign out button */
+      function showSignOut(on) {
+        var buttons = document.querySelectorAll("#reading-panel button");
+        for (var i = 0; i < buttons.length; i += 1) {
+          if (buttons[i].textContent === "Sign out") { buttons[i].hidden = !on; }
+        }
       }
 
       /**
@@ -738,19 +788,48 @@
         books.forEach(learnBook);
       }
 
+      /* Move the template's lock box into the sign-in screen. */
+      var watcher = new MutationObserver(function moveLock() {
+        var box = document.getElementById("unlock");
+        if (!box || box.parentNode === lockSlot) { return; }
+        var wait = document.getElementById("gateWait");
+        if (wait) { wait.remove(); }
+        var note = box.querySelector(".note");
+        if (note && /^This book is encrypted/.test(note.textContent)) {
+          note.textContent = "";
+          note.hidden = true;
+        }
+        lockSlot.appendChild(box);
+      });
+      watcher.observe(document.body, { childList: true });
+
       addStyle(CDN + "css/theme-defaults.css");
       addStyle(CDN + "css/reading-panel.css");
       var files = Promise.all([loadJson("subject.json"), loadJson("books.json")]);
       files.catch(function ignore() { /* reported below */ });
+      loadJson("subject.json").then(function early(subject) {
+        if (subject.title) {
+          gateTitle.textContent = subject.title;
+          document.title = subject.title;
+        }
+      }).catch(function ignore() { /* the title stays "Books" */ });
+      /* The gear works on the sign-in screen too; Sign out only after. */
+      var gearReady = setUpGear();
+      gearReady.catch(function ignore() { /* reported below */ });
       addScript(CDN + "js/unlock.js")
         .then(function unlock() { return window.SubjectUnlock.ready(); })
         .then(function signedIn(result) {
           key = result.key;
           status.textContent = "Loading your books…";
-          return Promise.all([files, setUpGear()]);
+          gate.hidden = true;
+          app.hidden = false;
+          showSignOut(true);
+          return Promise.all([files, gearReady]);
         })
         .then(function show(done) { start(done[0][0], done[0][1]); })
         .catch(function failed(problem) {
+          gate.hidden = true;
+          app.hidden = false;
           status.hidden = false;
           count.textContent = "";
           status.textContent = "Could not start: " + problem.message +
