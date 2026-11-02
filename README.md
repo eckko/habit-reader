@@ -9,22 +9,26 @@ from [`eckko/recall-quiz-site-template`](https://github.com/eckko/recall-quiz-si
 (3.0.0 and later). Each book card on the hub has two buttons, **Read book**
 and **Test only**, greyed out when the book has no such view.
 
-The hub is **sign-in only**: `index.html` shows nothing but a teal sign-in
-screen (the template's lock box, restyled; the gear works there too, without
-Sign out) until the reader has signed in (or pasted the key). After that it shows each
-book's cover (decrypted from `<book>/media/<id>_front_cover.enc`), with search,
-filters, sort (A-Z, recent, progress, size), a cards / list / compact switch
-and the template's gear (reading settings, theme, **Sign out**) at the bottom
-right. Progress comes from this browser's saved quiz progress. The hub starts in the Classic theme, light, at 16px (set in `setUpGear()` with
-`RecallQuizBookDefaults`; a reader's own gear choices win). The template is
-loaded by the exact tag `TEMPLATE_TAG` at the top of the script in `index.html`;
-change it there when the tag moves (`set_template_tag.py` only rewrites book
-pages).
+## The hub UI (not in this repo)
 
-Authors shown on the hub come from `bookDetails` in `subject.json`
-(`{"<book id>": {"authors": ["Name"]}}`; `edition` and `year` are shown too
-when given). The favicon and the iOS home-screen icon are inlined as data URIs
-in `index.html`, because `build_hub.py --check` rejects extra files in the root.
+`index.html` is a tiny shell. The whole hub UI (sign-in screen, shelf with
+covers, search, sort, filters, cards / list / compact views, the gear and the
+icons) is loaded from
+[`eckko/subject-site-template`](https://github.com/eckko/subject-site-template)
+on jsDelivr by one **exact release tag**, written three times in `index.html`
+(`js/hub.js`, the favicon and the iOS icon: keep them the same). **Subject
+repos hold encrypted data only; all UI changes are made in that repo**, which
+then gets a new tag. To move to it, change the tag in those three URLs.
+
+The hub is **sign-in only**: until the reader has signed in (or pasted the
+key) it shows nothing but a sign-in screen; the gear works there too. After
+that it shows each book's cover (decrypted from
+`<book>/media/<id>_front_cover.enc`), with search, filters, sort, views and
+the gear (theme, font size, **Sign out**). Progress comes from this browser's
+saved quiz progress. It starts in the Classic theme, light, at 16px.
+
+`subject.json` can add `bookDetails` for the cards:
+`{"<book id>": {"authors": ["Name"], "edition": "2nd", "year": 2018}}`.
 
 This is the encrypted counterpart of
 [`eckko/subject-site-shell`](https://github.com/eckko/subject-site-shell).
