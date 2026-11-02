@@ -16,6 +16,15 @@
         "quiz",
         "read"
       ]
+    },
+    {
+      "folder": "getting-things-done",
+      "id": "getting-things-done",
+      "title": "Getting Things Done",
+      "views": [
+        "quiz",
+        "read"
+      ]
     }
   ]
 }
