@@ -19,6 +19,33 @@
       ]
     },
     {
+      "folder": "mindset",
+      "id": "mindset",
+      "title": "Mindset: The New Psychology of Success",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
+      "folder": "the-checklist-manifesto",
+      "id": "the-checklist-manifesto",
+      "title": "The Checklist Manifesto",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
+      "folder": "the-effective-executive",
+      "id": "the-effective-executive",
+      "title": "The Effective Executive",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
       "folder": "the-power-of-habit",
       "id": "the-power-of-habit",
       "title": "The Power of Habit",
