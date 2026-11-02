@@ -19,6 +19,11 @@ loaded by the exact tag `TEMPLATE_TAG` at the top of the script in `index.html`;
 change it there when the tag moves (`set_template_tag.py` only rewrites book
 pages).
 
+Authors shown on the hub come from `bookDetails` in `subject.json`
+(`{"<book id>": {"authors": ["Name"]}}`; `edition` and `year` are shown too
+when given). The favicon and the iOS home-screen icon are inlined as data URIs
+in `index.html`, because `build_hub.py --check` rejects extra files in the root.
+
 This is the encrypted counterpart of
 [`eckko/subject-site-shell`](https://github.com/eckko/subject-site-shell).
 
