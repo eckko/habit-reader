@@ -46,6 +46,15 @@
       ]
     },
     {
+      "folder": "the-organized-mind",
+      "id": "the-organized-mind",
+      "title": "The Organized Mind",
+      "views": [
+        "quiz",
+        "read"
+      ]
+    },
+    {
       "folder": "the-power-of-habit",
       "id": "the-power-of-habit",
       "title": "The Power of Habit",
