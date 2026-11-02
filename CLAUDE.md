@@ -10,3 +10,7 @@ file, image or key anywhere, never edit `books.json` by hand (the template's
 `tools/site/build_hub.py` writes it), and never change a book's `id`. Tags are
 exact like `3.1.0` (no `v`, never a branch); keep `subject.json`'s
 `templateTag` in step. See README.md.
+
+The hub `index.html` is hand-written (the template's tools never touch it). It
+needs the sign-in first, so keep every book detail behind `SubjectUnlock.ready()`,
+and keep its `TEMPLATE_TAG` an exact tag.

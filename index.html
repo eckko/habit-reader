@@ -1,12 +1,23 @@
 <!doctype html>
 <!--
-  The hub page of a subject site. It lists the books in books.json (written
-  by tools/build_hub.py) as cards with two buttons: Read book and Test only.
-  A button is greyed out when the book does not have that view. Each opens
-  <folder>/index.html?view=..., which asks for the key itself (sign in with
-  Google or paste it), then starts the reader or the quiz from the CDN.
-  The cards show a letter, never a book cover: covers are encrypted.
-  The subject's name comes from subject.json. No book content lives here.
+  The hub page of a subject site: the Shelf.
+  Nothing is shown until the reader has signed in (js/unlock.js from the quiz
+  template gets the subject key, the same way the book pages do). After that
+  the page lists the books in books.json with their covers, which are
+  encrypted like everything else: each book's data/manifest.enc names the
+  cover, and media/<id>_front_cover.enc is decrypted in the browser. A book
+  without a cover gets a typographic tile.
+
+  The reader can search, filter (all / in progress / not started / done), sort
+  (A-Z, recent, progress, size) and switch between cards, a list and a compact
+  list. Progress is read from this browser's saved quiz progress
+  (recall-quiz:<book id>), so it is per device until the quiz syncs it.
+  The round gear at the bottom right is the template's reading panel (mode,
+  theme, font size, font, spacing, page colours) plus "Sign out".
+
+  Needs books.json (written by the template's tools/site/build_hub.py) and
+  subject.json. The quiz template is loaded from the CDN by one exact tag,
+  TEMPLATE_TAG below (never a branch). No book content lives in this file.
 -->
 <html lang="en">
 <head>
@@ -15,108 +26,237 @@
   <title>Books</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f6f6a'/%3E%3Cpath d='M9 8h10a4 4 0 0 1 4 4v12H13a4 4 0 0 1-4-4z' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E">
   <style>
-    :root {
-      color-scheme: light dark;
-      --page: #f6f7f9;
-      --card: #ffffff;
-      --text: #1b1f24;
-      --muted: #5b6470;
-      --line: #d5dae1;
-      --accent: #2b59c3;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --page: #14171c;
-        --card: #1e232b;
-        --text: #e8ebef;
-        --muted: #a2abb7;
-        --line: #343b46;
-        --accent: #8fb0ff;
-      }
-    }
-    * { box-sizing: border-box; }
+    html { background: var(--color-page, #fbf8f1); }
     body {
       margin: 0;
-      background: var(--page);
-      color: var(--text);
-      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      background: var(--color-page, #fbf8f1);
+      color: var(--color-text, #121826);
+      font: var(--reading-font-size, 16px) / 1.5 var(--font-body, system-ui, -apple-system, "Segoe UI", sans-serif);
     }
-    main {
-      max-width: 52rem;
-      margin: 0 auto;
-      padding: 2rem 1rem 3rem;
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 3px solid var(--color-accent, #2743d6);
+      outline-offset: 2px;
     }
-    h1 { margin: 0 0 .25rem; font-size: 1.75rem; }
-    .count { margin: 0 0 1.5rem; color: var(--muted); }
-    .books {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-      gap: 1rem;
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+    main { max-width: 64rem; margin: 0 auto; padding: 1.25rem 1rem 6rem; }
+    h1 {
       margin: 0;
-      padding: 0;
-      list-style: none;
+      font: 600 2rem/1.1 var(--font-heading, Georgia, serif);
     }
+    .count { margin: .25rem 0 0; color: var(--color-text-muted, #5b6578); font-size: .9rem; }
+    .status { padding: 2rem 0; color: var(--color-text-muted, #5b6578); }
+
+    /* controls */
+    .controls { display: flex; flex-direction: column; gap: .75rem; margin: 1rem 0; }
+    .row { display: flex; gap: .75rem; align-items: center; }
+    .search { position: relative; flex: 1; min-width: 0; }
+    .search svg { position: absolute; left: .75rem; top: 50%; margin-top: -9px; color: var(--color-text-muted, #5b6578); }
+    .search input {
+      width: 100%; height: 3rem; padding: 0 .75rem 0 2.4rem;
+      color: var(--color-text, #121826); background: var(--color-card, #fbfcfd);
+      border: 1px solid var(--color-border, #d5dbe5); border-radius: var(--radius-small, .75rem);
+    }
+    .search input::placeholder { color: var(--color-text-muted, #5b6578); }
+    .seg {
+      display: flex; gap: 2px; padding: 3px;
+      background: var(--color-border, #d5dbe5); border-radius: var(--radius-small, .75rem);
+    }
+    .seg button {
+      display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+      color: var(--color-text-muted, #5b6578); background: transparent;
+      border: 0; border-radius: calc(var(--radius-small, .75rem) - 2px);
+    }
+    .seg button[aria-pressed="true"] { color: var(--color-on-accent, #fff); background: var(--color-accent, #2743d6); }
+    .chips { display: flex; gap: .5rem; align-items: center; overflow-x: auto; padding-bottom: 2px; }
+    .chips .label { flex: none; color: var(--color-text-muted, #5b6578); font-size: .85rem; }
+    .chips .divider { flex: none; width: 1px; height: 1.5rem; margin: 0 .25rem; background: var(--color-border, #d5dbe5); }
+    .chip {
+      flex: none; height: 44px; padding: 0 1rem; font-size: .9rem; font-weight: 500;
+      color: var(--color-text, #121826); background: var(--color-card, #fbfcfd);
+      border: 1px solid var(--color-border, #d5dbe5); border-radius: 22px;
+    }
+    .chip[aria-pressed="true"] { color: var(--color-page, #fff); background: var(--color-text, #121826); border-color: var(--color-text, #121826); }
+    .chip.sort[aria-pressed="true"] { color: var(--color-on-accent, #fff); background: var(--color-accent, #2743d6); border-color: var(--color-accent, #2743d6); }
+
+    /* lists */
+    ul.books { margin: 0; padding: 0; list-style: none; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: .75rem; }
+    .stack { display: flex; flex-direction: column; gap: .75rem; }
+    .compact { overflow: hidden; background: var(--color-card, #fbfcfd); border: 1px solid var(--color-border, #d5dbe5); border-radius: var(--radius, 1rem); }
+
     .book {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: .75rem;
-      height: 100%;
-      padding: 1rem .75rem;
-      border: 1px solid var(--line);
-      border-radius: .75rem;
-      background: var(--card);
-      color: var(--text);
-      text-align: center;
-      text-decoration: none;
-      overflow-wrap: anywhere;
+      min-width: 0; overflow: hidden;
+      background: var(--color-card, #fbfcfd); border: 1px solid var(--color-border, #d5dbe5);
+      border-radius: var(--radius, 1rem);
     }
-    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem;
-      margin-top: auto; width: 100%; }
-    .action { flex: 1 1 6rem; padding: .5rem .75rem; border: 1px solid var(--accent);
-      border-radius: .5rem; color: var(--accent); font-weight: 600; text-decoration: none; }
-    .action.primary { background: var(--accent); color: var(--page); }
-    .action:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-    .action[aria-disabled="true"] { border-color: var(--line); background: transparent;
-      color: var(--muted); opacity: .6; cursor: not-allowed; }
-    .icon {
-      flex: none;
-      width: 5rem;
-      height: 5rem;
-      border-radius: 1rem;
-      object-fit: cover;
+    .cover {
+      display: flex; flex-direction: column; gap: .6rem; overflow: hidden;
+      padding: .9rem; color: #fff; background: #2f4a8f;
     }
-    .icon.missing {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--line);
-      font-size: 2rem;
-      font-weight: 600;
-      color: var(--accent);
+    .cover::before { content: ""; width: 1.5rem; height: 3px; background: currentColor; opacity: .6; }
+    .cover .t { margin: 0; font: 600 1.05rem/1.2 var(--font-heading, Georgia, serif); overflow-wrap: anywhere; }
+    .cover .m { margin-top: auto; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; }
+    img.cover-img { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .art { position: relative; aspect-ratio: 2 / 3; background: #2f4a8f; }
+    .art > .cover { position: absolute; inset: 0; }
+    .meta { padding: .6rem .75rem .75rem; display: flex; flex-direction: column; gap: .5rem; }
+    .bar { height: 4px; overflow: hidden; background: var(--color-border, #d5dbe5); border-radius: 2px; }
+    .bar > i { display: block; height: 100%; background: var(--color-accent, #2743d6); border-radius: 2px; }
+    .bar.done > i { background: var(--color-correct, #1e8a63); }
+    .small { margin: 0; color: var(--color-text-muted, #5b6578); font-size: .8rem; }
+    .actions { display: flex; gap: .4rem; }
+    .action {
+      flex: 1; display: grid; place-items: center; min-height: 44px; padding: 0 .5rem;
+      color: var(--color-text, #121826); font-size: .9rem; font-weight: 600; text-decoration: none;
+      background: var(--color-card, #fbfcfd); border: 2px solid var(--color-accent, #2743d6);
+      border-radius: var(--radius-small, .75rem);
     }
-    .name { font-weight: 600; }
-    .note { color: var(--muted); }
+    .action.primary { color: var(--color-on-accent, #fff); background: var(--color-accent, #2743d6); }
+    .action[aria-disabled="true"] {
+      color: var(--color-text-muted, #5b6578); background: transparent;
+      border-color: var(--color-border, #d5dbe5); opacity: .7; cursor: not-allowed;
+    }
+
+    .listrow { display: flex; gap: .75rem; padding: .75rem; }
+    .listrow .art { flex: 0 0 4.5rem; align-self: flex-start; border-radius: .5rem; overflow: hidden; }
+    .listrow .cover { padding: .4rem; }
+    .listrow .cover::before, .listrow .cover .m { display: none; }
+    .listrow .cover .t { font-size: .7rem; }
+    .listrow .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .4rem; }
+    .listrow h2 { margin: 0; font: 600 1.05rem/1.25 var(--font-heading, Georgia, serif); }
+    .listrow .about { margin: 0; font-size: .85rem; color: var(--color-text-muted, #5b6578);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .listrow .actions { max-width: 20rem; margin-top: .25rem; }
+
+    .crow { display: flex; align-items: center; gap: .6rem; min-height: 3.5rem; padding: 0 .25rem 0 .75rem; border-top: 1px solid var(--color-border, #d5dbe5); }
+    .crow:first-child { border-top: 0; }
+    .crow .dot { flex: none; width: 10px; height: 10px; border-radius: 3px; }
+    .crow .text { flex: 1; min-width: 0; padding: .4rem 0; }
+    .crow h2 { margin: 0; font-size: .95rem; font-weight: 600; line-height: 1.25; }
+    .crow a { flex: none; display: grid; place-items: center; min-width: 3.2rem; min-height: 44px;
+      color: var(--color-text, #121826); text-decoration: underline; text-decoration-color: var(--color-accent, #2743d6); text-underline-offset: 4px; font-size: .9rem; font-weight: 600; }
+    .crow a[aria-disabled="true"] { color: var(--color-text-muted, #5b6578); opacity: .6; }
+
+    .empty { padding: 3rem 1rem; text-align: center; color: var(--color-text-muted, #5b6578); }
+    .empty button { margin-top: .5rem; min-height: 44px; padding: 0 1.25rem; color: var(--color-text, #121826);
+      background: var(--color-card, #fbfcfd); border: 2px solid var(--color-accent, #2743d6); border-radius: var(--radius-small, .75rem); font-weight: 600; }
   </style>
 </head>
 <body>
   <main>
     <h1 id="heading">Books</h1>
-    <p class="count" id="count" aria-live="polite">Loading…</p>
-    <ul class="books" id="books"></ul>
+    <p class="count" id="count" aria-live="polite">Checking sign-in…</p>
+
+    <p class="status" id="status" role="status">Sign in to see your books.</p>
+
+    <div id="shelf" hidden>
+      <div class="controls">
+        <div class="row">
+          <div class="search">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <input id="query" type="search" placeholder="Search books" aria-label="Search books" autocomplete="off">
+          </div>
+          <div class="seg" id="views" role="group" aria-label="Layout">
+            <button type="button" data-view="cards" aria-label="Cards" aria-pressed="true"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg></button>
+            <button type="button" data-view="list" aria-label="List" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="4" height="5" rx="1"></rect><rect x="4" y="14" width="4" height="5" rx="1"></rect><path d="M11 7.5h9M11 16.5h9"></path></svg></button>
+            <button type="button" data-view="compact" aria-label="Compact" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"></path></svg></button>
+          </div>
+        </div>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div id="books"></div>
+    </div>
   </main>
+
   <script>
     (function showHub() {
       "use strict";
 
+      /* The quiz template, by one exact tag (never a branch). The gear panel
+         is the same code as in the quiz and the ereader (template 3.2.x). */
+      var TEMPLATE_TAG = "3.2.3";
+      var CDN = "https://cdn.jsdelivr.net/gh/eckko/recall-quiz-site-template@" +
+        TEMPLATE_TAG + "/";
+      var UI_KEY = "recall-hub:ui";
+      var OPENED_KEY = "recall-hub:opened:";
+      var PROGRESS_KEY = "recall-quiz:";
+      var SHARED_SCRIPTS = ["js/default-settings.js", "js/themes-list.js",
+        "js/theme-picker.js", "js/helpers.js", "js/reading-settings.js",
+        "js/reading-panel.js"];
+      var TILE_COLOURS = ["#2f4a8f", "#1f5f5b", "#8a3b2a", "#5b3f8c",
+        "#8f5214", "#3d5a2a", "#7a2e55", "#2b3a4a"];
+      var FILTERS = [["all", "All"], ["going", "In progress"],
+        ["new", "Not started"], ["done", "Done"]];
+      var SORTS = [["az", "A–Z"], ["recent", "Recent"],
+        ["progress", "Progress"], ["size", "Size"]];
+
       var heading = document.getElementById("heading");
       var count = document.getElementById("count");
-      var list = document.getElementById("books");
+      var status = document.getElementById("status");
+      var shelf = document.getElementById("shelf");
+      var chipsBox = document.getElementById("chips");
+      var listBox = document.getElementById("books");
+      var queryBox = document.getElementById("query");
+      var viewButtons = document.querySelectorAll("#views button");
+
+      var books = [];                    // books.json entries plus what we learn
+      var ui = loadUi();
+      var key = null;                    // CryptoKey once signed in
+
+      // ---------------------------------------------------------- helpers
+
+      /** @returns {{view: string, sort: string, filter: string}} */
+      function loadUi() {
+        var saved = {};
+        try {
+          saved = JSON.parse(localStorage.getItem(UI_KEY) || "{}");
+        } catch (problem) {
+          saved = {};
+        }
+        return {
+          view: ["cards", "list", "compact"].indexOf(saved.view) !== -1 ? saved.view : "cards",
+          sort: SORTS.some(function has(s) { return s[0] === saved.sort; }) ? saved.sort : "az",
+          filter: FILTERS.some(function has(f) { return f[0] === saved.filter; }) ? saved.filter : "all",
+          query: "",
+        };
+      }
+
+      /** Remember layout, sort and filter on this device. */
+      function saveUi() {
+        try {
+          localStorage.setItem(UI_KEY, JSON.stringify({
+            view: ui.view, sort: ui.sort, filter: ui.filter }));
+        } catch (problem) {
+          // storage blocked: the choice lasts until the page closes
+        }
+      }
 
       /**
-       * @param {string} file  a file next to this page
-       * @returns {Promise<object>} the parsed JSON
+       * @param {string} tag  element name
+       * @param {string} [className]
+       * @param {string} [text]
+       * @returns {HTMLElement}
        */
+      function make(tag, className, text) {
+        var element = document.createElement(tag);
+        if (className) {
+          element.className = className;
+        }
+        if (text !== undefined) {
+          element.textContent = text;
+        }
+        return element;
+      }
+
+      /** @param {string} file  @returns {Promise<object>} parsed JSON */
       function loadJson(file) {
         return fetch(file, { cache: "no-cache" }).then(function read(reply) {
           if (!reply.ok) {
@@ -127,55 +267,172 @@
       }
 
       /**
-       * @param {object} book  one entry of books.json
-       * @returns {HTMLElement} a letter tile (book covers are encrypted)
+       * @param {string} address
+       * @returns {Promise} resolves when the classic script has run
        */
-      function makeIcon(book) {
-        var letter = document.createElement("span");
-        letter.className = "icon missing";
-        letter.setAttribute("aria-hidden", "true");
-        letter.textContent = (book.title || "?").charAt(0).toUpperCase();
-        return letter;
+      function addScript(address) {
+        return new Promise(function add(resolve, reject) {
+          var script = document.createElement("script");
+          script.src = address;
+          script.onload = resolve;
+          script.onerror = function failed() {
+            reject(new Error("could not load " + address));
+          };
+          document.head.appendChild(script);
+        });
+      }
+
+      /** @param {string} address  adds a stylesheet link */
+      function addStyle(address) {
+        var link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = address;
+        document.head.appendChild(link);
+      }
+
+      /** @param {Uint8Array} bytes  @returns {string} an image type */
+      function sniff(bytes) {
+        if (bytes[0] === 0x89 && bytes[1] === 0x50) { return "image/png"; }
+        if (bytes[0] === 0xff && bytes[1] === 0xd8) { return "image/jpeg"; }
+        if (bytes[0] === 0x47 && bytes[1] === 0x49) { return "image/gif"; }
+        if (bytes[0] === 0x52 && bytes[1] === 0x49) { return "image/webp"; }
+        return "image/svg+xml";
       }
 
       /**
-       * @param {object} book  one entry of books.json
-       * @returns {HTMLElement} the list item with the book's button
+       * @param {number} when  a time in ms
+       * @returns {string} "today", "yesterday", "3 days ago", ...
        */
-      function makeButton(book) {
-        var item = document.createElement("li");
-        var card = document.createElement("div");
-        var name = document.createElement("span");
-        var actions = document.createElement("div");
-        var views = book.views || [];
-        card.className = "book";
-        name.className = "name";
-        name.textContent = book.title;
-        actions.className = "actions";
-        actions.appendChild(makeAction("Read book", book, "read", views));
-        actions.appendChild(makeAction("Test only", book, "quiz", views));
-        card.appendChild(makeIcon(book));
-        card.appendChild(name);
-        card.appendChild(actions);
-        item.appendChild(card);
-        return item;
+      function ago(when) {
+        var days = Math.floor((Date.now() - when) / 86400000);
+        if (days <= 0) { return "today"; }
+        if (days === 1) { return "yesterday"; }
+        return days + " days ago";
+      }
+
+      /** @param {string} title  @returns {string} a sort key without The/A */
+      function sortKey(title) {
+        return title.replace(/^(the|a)\s+/i, "").toLowerCase();
+      }
+
+      // ---------------------------------------------------- what we know
+
+      /**
+       * Read this browser's saved quiz progress for one book.
+       * @param {object} book
+       */
+      function readProgress(book) {
+        var answered = 0;
+        var last = 0;
+        try {
+          var saved = JSON.parse(localStorage.getItem(PROGRESS_KEY + book.id) || "{}");
+          Object.keys(saved.questions || {}).forEach(function each(id) {
+            var record = saved.questions[id];
+            if (record && record.timesSeen > 0) {
+              answered += 1;
+              last = Math.max(last, record.lastAnswered || 0);
+            }
+          });
+        } catch (problem) {
+          answered = 0;
+        }
+        var opened = 0;
+        try {
+          opened = Number(localStorage.getItem(OPENED_KEY + book.id)) || 0;
+        } catch (problem) {
+          opened = 0;
+        }
+        book.answered = answered;
+        book.lastTouched = Math.max(last, opened);
+      }
+
+      /** @param {object} book  @returns {number} percent answered, 0 to 100 */
+      function percent(book) {
+        if (!book.questions) {
+          return 0;
+        }
+        return Math.min(100, Math.round(100 * book.answered / book.questions));
+      }
+
+      /** @param {object} book  @returns {string} the status line */
+      function statusText(book) {
+        var pct = percent(book);
+        if (!book.answered) {
+          return "Not started";
+        }
+        var when = book.lastTouched ? " · " + ago(book.lastTouched) : "";
+        return (pct >= 100 ? "All answered" : pct + "% answered") + when;
       }
 
       /**
-       * @param {string} label  button text
-       * @param {object} book   one entry of books.json
-       * @param {string} view   "read" or "quiz"
-       * @param {string[]} views  the views this book has
-       * @returns {HTMLElement} a link, or a greyed-out button when the book
-       *   has no such view (the book page asks for the key itself)
+       * Decrypt one RQE1 file of this subject.
+       * @param {string} path
+       * @returns {Promise<Uint8Array>}
        */
-      function makeAction(label, book, view, views) {
-        var has = views.indexOf(view) !== -1;
-        var action = document.createElement(has ? "a" : "span");
-        action.className = "action" + (view === "read" ? " primary" : "");
-        action.textContent = label;
+      function fetchPlain(path) {
+        return fetch(path).then(function check(reply) {
+          if (!reply.ok) {
+            throw new Error(path + ": HTTP " + reply.status);
+          }
+          return reply.arrayBuffer();
+        }).then(function open(buffer) {
+          return window.SubjectUnlock.decrypt(buffer, key);
+        });
+      }
+
+      /**
+       * Load a book's manifest (summary, counts, cover) and its cover, then
+       * redraw. A failure just leaves the book as a typographic tile.
+       * @param {object} book
+       */
+      function learnBook(book) {
+        var folder = encodeURIComponent(book.folder);
+        fetchPlain(folder + "/data/manifest.enc").then(function got(bytes) {
+          var manifest = JSON.parse(new TextDecoder().decode(bytes));
+          book.summary = (manifest.book && manifest.book.summary) || "";
+          book.chapters = (manifest.chapters || []).length;
+          book.questions = (manifest.chapters || []).reduce(function add(sum, chapter) {
+            return sum + (chapter.questions || 0);
+          }, 0);
+          draw();
+          var cover = manifest.book && manifest.book.cover;
+          if (!cover) {
+            return null;
+          }
+          return fetchPlain(folder + "/media/" + cover.replace(/\//g, "_") + ".enc")
+            .then(function image(plain) {
+              book.coverUrl = URL.createObjectURL(
+                new Blob([plain], { type: sniff(plain) }));
+              draw();
+            });
+        }).catch(function ignore() {
+          // locked or missing: the tile stays
+        });
+      }
+
+      // ------------------------------------------------------------ views
+
+      /**
+       * @param {object} book
+       * @param {string} label
+       * @param {string} view  "read" or "quiz"
+       * @param {boolean} primary
+       * @returns {HTMLElement} a link, or a greyed-out label when the book has
+       *   no such view
+       */
+      function makeAction(book, label, view, primary) {
+        var has = (book.views || []).indexOf(view) !== -1;
+        var action = make(has ? "a" : "span", "action" + (primary ? " primary" : ""), label);
         if (has) {
           action.href = encodeURIComponent(book.folder) + "/index.html?view=" + view;
+          action.addEventListener("click", function remember() {
+            try {
+              localStorage.setItem(OPENED_KEY + book.id, String(Date.now()));
+            } catch (problem) {
+              // not stored
+            }
+          });
+          action.setAttribute("aria-label", label + ": " + book.title);
         } else {
           action.setAttribute("aria-disabled", "true");
           action.title = "Not available for this book yet";
@@ -184,28 +441,292 @@
       }
 
       /**
+       * The cover picture, or a typographic tile in the book's colour.
+       * @param {object} book
+       * @param {boolean} titleIsHeading  the tile's title is the book's h2
+       * @returns {HTMLElement}
+       */
+      function makeArt(book, titleIsHeading) {
+        var art = make("div", "art");
+        art.style.background = book.colour;
+        if (book.coverUrl) {
+          art.style.background = "var(--color-border, #d5dbe5)";
+          var image = make("img", "cover-img");
+          image.src = book.coverUrl;
+          image.alt = "Cover of " + book.title;
+          art.appendChild(image);
+          return art;
+        }
+        var tile = make("div", "cover");
+        tile.style.background = book.colour;
+        tile.appendChild(make(titleIsHeading ? "h2" : "p", "t", book.short));
+        if (book.chapters) {
+          tile.appendChild(make("div", "m", book.chapters + " chapters"));
+        }
+        art.appendChild(tile);
+        return art;
+      }
+
+      /** @param {object} book  @returns {HTMLElement} the progress bar */
+      function makeBar(book) {
+        var bar = make("div", "bar" + (percent(book) >= 100 ? " done" : ""));
+        var fill = make("i");
+        fill.style.width = percent(book) + "%";
+        bar.appendChild(fill);
+        bar.setAttribute("role", "progressbar");
+        bar.setAttribute("aria-valuemin", "0");
+        bar.setAttribute("aria-valuemax", "100");
+        bar.setAttribute("aria-valuenow", String(percent(book)));
+        bar.setAttribute("aria-label", "Answered");
+        return bar;
+      }
+
+      /** @param {object} book  @returns {HTMLElement} one card */
+      function makeCard(book) {
+        var item = make("li", "book");
+        item.appendChild(makeArt(book, true));
+        if (book.coverUrl) {
+          item.appendChild(make("h2", "sr-only", book.title));
+        }
+        var meta = make("div", "meta");
+        meta.appendChild(makeBar(book));
+        meta.appendChild(make("p", "small", statusText(book)));
+        var actions = make("div", "actions");
+        actions.appendChild(makeAction(book, "Read", "read", true));
+        actions.appendChild(makeAction(book, "Test", "quiz", false));
+        meta.appendChild(actions);
+        item.appendChild(meta);
+        return item;
+      }
+
+      /** @param {object} book  @returns {HTMLElement} one list row */
+      function makeRow(book) {
+        var item = make("li", "book listrow");
+        item.appendChild(makeArt(book, false));
+        var body = make("div", "body");
+        body.appendChild(make("h2", null, book.title));
+        if (book.summary) {
+          body.appendChild(make("p", "about", book.summary));
+        }
+        body.appendChild(makeBar(book));
+        var facts = [statusText(book)];
+        if (book.chapters) {
+          facts.push(book.chapters + " chapters", book.questions + " questions");
+        }
+        body.appendChild(make("p", "small", facts.join(" · ")));
+        var actions = make("div", "actions");
+        actions.appendChild(makeAction(book, "Read book", "read", true));
+        actions.appendChild(makeAction(book, "Test only", "quiz", false));
+        body.appendChild(actions);
+        item.appendChild(body);
+        return item;
+      }
+
+      /** @param {object} book  @returns {HTMLElement} one compact row */
+      function makeCompact(book) {
+        var item = make("li", "crow");
+        var dot = make("span", "dot");
+        dot.style.background = book.colour;
+        dot.setAttribute("aria-hidden", "true");
+        var text = make("div", "text");
+        text.appendChild(make("h2", null, book.title));
+        text.appendChild(make("p", "small", statusText(book)));
+        item.appendChild(dot);
+        item.appendChild(text);
+        item.appendChild(makeCompactLink(book, "Read", "read"));
+        item.appendChild(makeCompactLink(book, "Test", "quiz"));
+        return item;
+      }
+
+      /**
+       * @param {object} book
+       * @param {string} label
+       * @param {string} view
+       * @returns {HTMLElement}
+       */
+      function makeCompactLink(book, label, view) {
+        var link = makeAction(book, label, view, false);
+        link.className = "";
+        return link;
+      }
+
+      // ------------------------------------------------------ the list
+
+      /** @returns {object[]} the books to show, filtered and sorted */
+      function visibleBooks() {
+        var query = ui.query.trim().toLowerCase();
+        var shown = books.filter(function keep(book) {
+          var pct = percent(book);
+          var matches = !query || (book.title + " " + (book.summary || "")).toLowerCase().indexOf(query) !== -1;
+          var state = ui.filter === "all" ||
+            (ui.filter === "new" && !book.answered) ||
+            (ui.filter === "going" && book.answered && pct < 100) ||
+            (ui.filter === "done" && pct >= 100);
+          return matches && state;
+        });
+        var order = {
+          az: function az(a, b) { return sortKey(a.title).localeCompare(sortKey(b.title)); },
+          recent: function recent(a, b) {
+            return b.lastTouched - a.lastTouched || order.az(a, b);
+          },
+          progress: function progress(a, b) { return percent(b) - percent(a) || order.az(a, b); },
+          size: function size(a, b) { return (b.questions || 0) - (a.questions || 0) || order.az(a, b); },
+        };
+        return shown.sort(order[ui.sort]);
+      }
+
+      /** Draw the chips, the counts and the list for the current state. */
+      function draw() {
+        books.forEach(readProgress);
+        drawChips();
+        viewButtons.forEach(function mark(button) {
+          button.setAttribute("aria-pressed", String(button.getAttribute("data-view") === ui.view));
+        });
+        var shown = visibleBooks();
+        var going = books.filter(function started(book) {
+          return book.answered && percent(book) < 100;
+        }).length;
+        count.textContent = shown.length === books.length ?
+          books.length + (books.length === 1 ? " book" : " books") +
+            (going ? " · " + going + " in progress" : "") :
+          shown.length + " of " + books.length + " books";
+        listBox.textContent = "";
+        if (!shown.length) {
+          var empty = make("div", "empty");
+          empty.appendChild(make("p", null, books.length ? "No books match." : "No books yet."));
+          if (books.length) {
+            var clear = make("button", null, "Clear search and filters");
+            clear.type = "button";
+            clear.addEventListener("click", function reset() {
+              ui.query = "";
+              ui.filter = "all";
+              queryBox.value = "";
+              saveUi();
+              draw();
+            });
+            empty.appendChild(clear);
+          }
+          listBox.appendChild(empty);
+          return;
+        }
+        var list = make("ul", "books " + (ui.view === "cards" ? "grid" :
+          ui.view === "list" ? "stack" : "compact"));
+        var build = ui.view === "cards" ? makeCard : ui.view === "list" ? makeRow : makeCompact;
+        shown.forEach(function add(book) {
+          list.appendChild(build(book));
+        });
+        listBox.appendChild(list);
+      }
+
+      /** Draw the filter and sort chips. */
+      function drawChips() {
+        chipsBox.textContent = "";
+        FILTERS.forEach(function add(filter) {
+          chipsBox.appendChild(makeChip(filter[1], ui.filter === filter[0], "chip", function pick() {
+            ui.filter = filter[0];
+            saveUi();
+            draw();
+          }));
+        });
+        chipsBox.appendChild(make("span", "divider"));
+        chipsBox.appendChild(make("span", "label", "Sort"));
+        SORTS.forEach(function add(sort) {
+          chipsBox.appendChild(makeChip(sort[1], ui.sort === sort[0], "chip sort", function pick() {
+            ui.sort = sort[0];
+            saveUi();
+            draw();
+          }));
+        });
+      }
+
+      /**
+       * @param {string} label
+       * @param {boolean} on
+       * @param {string} className
+       * @param {function(): void} onPick
+       * @returns {HTMLElement}
+       */
+      function makeChip(label, on, className, onPick) {
+        var chip = make("button", className, label);
+        chip.type = "button";
+        chip.setAttribute("aria-pressed", String(on));
+        chip.addEventListener("click", onPick);
+        return chip;
+      }
+
+      // ------------------------------------------------------------ start
+
+      queryBox.addEventListener("input", function search() {
+        ui.query = queryBox.value;
+        draw();
+      });
+      viewButtons.forEach(function wire(button) {
+        button.addEventListener("click", function pick() {
+          ui.view = button.getAttribute("data-view");
+          saveUi();
+          draw();
+        });
+      });
+
+      /** The gear: the template's reading panel, plus Sign out. */
+      function setUpGear() {
+        window.RecallQuizAssetBase = CDN;
+        return SHARED_SCRIPTS.reduce(function chain(done, file) {
+          return done.then(function next() { return addScript(CDN + file); });
+        }, Promise.resolve()).then(function ready() {
+          window.RecallQuiz.reading.configure({ fontSize: 16, font: "theme" });
+          window.RecallQuiz.reading.useBook("subject-hub");
+          window.RecallQuizTheme.useBook("subject-hub");
+          window.RecallQuiz.readingPanel.create({
+            homeLabel: "Sign out",
+            onHome: function signOut() { window.SubjectUnlock.reset(); },
+            subjectPageAddress: null,
+            addSections: null,
+            onReset: function noop() {},
+          });
+        });
+      }
+
+      /**
        * @param {object} subject  subject.json
        * @param {object} index    books.json
        */
-      function render(subject, index) {
-        var books = index.books || [];
+      function start(subject, index) {
         if (subject.title) {
           heading.textContent = subject.title;
           document.title = subject.title;
         }
-        books.forEach(function add(book) {
-          list.appendChild(makeButton(book));
+        books = (index.books || []).map(function prepare(book, number) {
+          return Object.assign({
+            short: book.title.split(":")[0],
+            colour: TILE_COLOURS[number % TILE_COLOURS.length],
+            answered: 0, lastTouched: 0, questions: 0, chapters: 0,
+            summary: "", coverUrl: "",
+          }, book);
         });
-        count.textContent = books.length === 0 ? "No books yet." :
-          books.length + (books.length === 1 ? " book" : " books");
+        status.hidden = true;
+        shelf.hidden = false;
+        draw();
+        books.forEach(learnBook);
       }
 
-      Promise.all([loadJson("subject.json"), loadJson("books.json")])
-        .then(function done(files) { render(files[0], files[1]); })
-        .catch(function failed() {
-          count.className = "count note";
-          count.textContent = "The book list could not be loaded. " +
-            "Open this page through a web server, not from a folder.";
+      addStyle(CDN + "css/theme-defaults.css");
+      addStyle(CDN + "css/reading-panel.css");
+      var files = Promise.all([loadJson("subject.json"), loadJson("books.json")]);
+      files.catch(function ignore() { /* reported below */ });
+      addScript(CDN + "js/unlock.js")
+        .then(function unlock() { return window.SubjectUnlock.ready(); })
+        .then(function signedIn(result) {
+          key = result.key;
+          status.textContent = "Loading your books…";
+          return Promise.all([files, setUpGear()]);
+        })
+        .then(function show(done) { start(done[0][0], done[0][1]); })
+        .catch(function failed(problem) {
+          status.hidden = false;
+          count.textContent = "";
+          status.textContent = "Could not start: " + problem.message +
+            " (open this page through a web server, not from a folder).";
         });
     })();
   </script>
