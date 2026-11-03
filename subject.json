@@ -1,7 +1,12 @@
 {
   "title": "Habit",
   "templateTag": "3.2.4",
-  "uiVersion": "1",
+  "uiVersion": "2",
+  "theme": {
+    "css": "theme/gate.css",
+    "icon": "theme/icon.svg",
+    "appleTouchIcon": "theme/apple-touch-icon.png"
+  },
   "bookDetails": {
     "essentialism": {
       "authors": [

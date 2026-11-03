@@ -15,12 +15,13 @@ and **Test only**, greyed out when the book has no such view.
 and loads the whole hub UI (sign-in screen, shelf with covers, search, sort,
 filters, cards / list / compact views, the gear and the icons) from
 [`eckko/subject-site-template`](https://github.com/eckko/subject-site-template)
-on jsDelivr. `"uiVersion": "1"` means the newest `1.x.x` release, so minor and
+on jsDelivr. `"uiVersion": "2"` means the newest `2.x.x` release, so minor and
 patch updates reach this site by themselves (a browser may take a while to see
-one because of caching). **Subject repos hold encrypted data only; all UI
+one because of caching). **Subject repos hold encrypted data and this
+subject's own look (`theme/`, named by `theme` in `subject.json`); all other UI
 changes are made in that repo.** A new major version (breaking changes) is
-adopted by hand: set `"uiVersion": "2"` in `subject.json`. Pin an exact
-release (`"1.2.3"`) to stop updates.
+adopted by hand: set `"uiVersion"` to it in `subject.json`. Pin an exact
+release (`"2.0.0"`) to stop updates.
 
 The hub is **sign-in only**: until the reader has signed in (or pasted the
 key) it shows nothing but a sign-in screen; the gear works there too. After
