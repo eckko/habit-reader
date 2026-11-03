@@ -15,9 +15,9 @@ The hub `index.html` is only a fixed loader: it loads the UI (`js/hub.js`,
 `css/hub.css`, icons) from https://github.com/eckko/subject-site-template on
 jsDelivr at the version in `subject.json`'s `uiVersion` (`"2"` = newest 2.x.x).
 Never put hub UI code in this repo; change it in that repo. This subject's own
-look is the exception and lives here, in `theme/` (`gate.css`, `gate-art.svg`,
+look is the exception and lives here, in `.theme/` (`gate.css`, `gate-art.svg`,
 `icon.svg`, `apple-touch-icon.png`), named by `theme` in `subject.json`: the
-teal sign-in colours and art and the icons. Keep `theme/gate.css` to the
+teal sign-in colours and art and the icons. Keep `.theme/gate.css` to the
 `--gate-*` variables and the `.gate-art` picture (see that repo's README,
-"Theme a subject"); no book content in `theme/`.
+"Theme a subject"); no book content in `.theme/`.
 A new major version is adopted by hand by editing `uiVersion`.

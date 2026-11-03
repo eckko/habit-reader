@@ -18,7 +18,7 @@ filters, cards / list / compact views, the gear and the icons) from
 on jsDelivr. `"uiVersion": "2"` means the newest `2.x.x` release, so minor and
 patch updates reach this site by themselves (a browser may take a while to see
 one because of caching). **Subject repos hold encrypted data and this
-subject's own look (`theme/`, named by `theme` in `subject.json`); all other UI
+subject's own look (`.theme/`, named by `theme` in `subject.json`); all other UI
 changes are made in that repo.** A new major version (breaking changes) is
 adopted by hand: set `"uiVersion"` to it in `subject.json`. Pin an exact
 release (`"2.0.0"`) to stop updates.
